@@ -4,79 +4,81 @@ import cv2
 from sklearn.cluster import KMeans
 import colorsys
 
-st.set_page_config(page_title="StyleMatch AI Pro", layout="centered")
+st.set_page_config(page_title="StyleMatch AI - Fabric Focus", layout="centered")
 
-def get_vibrant_color(image, k=5):
-    # 1. Resize and filter out background noise
-    img = cv2.resize(image, (100, 100), interpolation=cv2.INTER_AREA)
-    img = img.reshape((-1, 3))
+def get_garment_color(image, k=5):
+    # 1. Focus on the center (Crop out 50% of the edges to avoid background)
+    h, w, _ = image.shape
+    start_h, start_w = h // 4, w // 4
+    end_h, end_w = 3 * h // 4, 3 * w // 4
+    crop_img = image[start_h:end_h, start_w:end_w]
     
-    # 2. Find top 5 colors
+    # 2. Resize for speed
+    pixels = cv2.resize(crop_img, (100, 100)).reshape((-1, 3))
+    
+    # 3. Cluster colors
     clt = KMeans(n_clusters=k, n_init=10)
-    clt.fit(img)
+    clt.fit(pixels)
     colors = clt.cluster_centers_
 
-    # 3. Find the most "vibrant" color (highest saturation)
-    vibrant_color = colors[0]
-    max_sat = 0
+    # 4. Logic: Find the most saturated (purest) color to avoid shadows/whites
+    best_color = colors[0]
+    max_score = -1
     
     for color in colors:
         r, g, b = color / 255.0
-        h, l, s = colorsys.rgb_to_hls(r, g, b)
-        # We want color, not white (high L) or black (low L)
-        if s > max_sat and 0.2 < l < 0.8:
-            max_sat = s
-            vibrant_color = color
+        h_val, l_val, s_val = colorsys.rgb_to_hls(r, g, b)
+        
+        # Scoring: High saturation + Moderate brightness = True Fabric Color
+        # This ignores white backgrounds and black shadows
+        score = s_val * (1 - abs(l_val - 0.5)) 
+        
+        if score > max_score:
+            max_score = score
+            best_color = color
             
-    return [int(c) for c in vibrant_color]
+    return [int(c) for c in best_color], crop_img
 
-def get_recommendations(rgb_list):
-    r, g, b = [x / 255.0 for x in rgb_list]
-    h, l, s = colorsys.rgb_to_hls(r, g, b)
-    
-    # Fashion-forward matching logic
-    matches = {
-        "Contrasting Blouse": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
-        "Matching Border/Thread": colorsys.hls_to_rgb((h + 0.08) % 1.0, l, s),
-        "Modern/Designer Match": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
-    }
-    return matches
+st.title("👗 StyleMatch AI: Fabric Focus")
+st.info("The app now automatically crops the center of your photo to ignore backgrounds!")
 
-st.title("👗 StyleMatch AI Pro")
-st.write("Optimized for Saree & Patterned Fabrics")
-
-uploaded_file = st.file_uploader("Upload your outfit", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload Garment Photo", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     img = cv2.imdecode(file_bytes, 1)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     
-    st.image(img, caption="Your Uploaded Garment", use_container_width=True)
-    
-    # Advanced detection
-    with st.spinner('Extracting true fabric color...'):
-        dom_color = get_vibrant_color(img)
-    
+    # Process
+    dom_color, focus_area = get_garment_color(img)
     rgb_str = f"rgb({dom_color[0]}, {dom_color[1]}, {dom_color[2]})"
     
-    st.subheader("Detected True Color")
-    st.markdown(f'<div style="background-color:{rgb_str};width:100%;height:70px;border-radius:15px;border:3px solid white;box-shadow: 0px 4px 10px rgba(0,0,0,0.2)"></div>', unsafe_allow_html=True)
-    st.caption(f"App filtered out shadows and background to find this {rgb_str}")
+    # Display results
+    col1, col2 = st.columns(2)
+    with col1:
+        st.image(img, caption="Original Photo", use_container_width=True)
+    with col2:
+        st.image(focus_area, caption="Area Analyzed (Garment Only)", use_container_width=True)
+
+    st.subheader("Detected Fabric Color")
+    st.markdown(f'<div style="background-color:{rgb_str};width:100%;height:80px;border-radius:15px;border:4px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3)"></div>', unsafe_allow_html=True)
     
-    recommendations = get_recommendations(dom_color)
+    # Recommendations
+    r, g, b = [x/255.0 for x in dom_color]
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
     
+    matches = {
+        "Perfect Contrast (Blouse)": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
+        "Elegant Harmony (Border)": colorsys.hls_to_rgb((h + 0.1) % 1.0, l, s),
+        "Modern Pop (Accessories)": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
+    }
+
     st.divider()
-    st.subheader("Perfect Pairings")
     cols = st.columns(3)
-    
-    labels = list(recommendations.keys())
-    values = list(recommendations.values())
-    
-    for i in range(3):
+    for i, (name, match_rgb) in enumerate(matches.items()):
+        final_rgb = [int(x*255) for x in match_rgb]
+        color_code = f"rgb({final_rgb[0]}, {final_rgb[1]}, {final_rgb[2]})"
         with cols[i]:
-            match_rgb = [int(x * 255) for x in values[i]]
-            match_str = f"rgb({match_rgb[0]}, {match_rgb[1]}, {match_rgb[2]})"
-            st.write(f"**{labels[i]}**")
-            st.markdown(f'<div style="background-color:{match_str};width:100%;height:120px;border-radius:10px;box-shadow: 2px 2px 8px rgba(0,0,0,0.1)"></div>', unsafe_allow_html=True)
-            st.write(f"Code: {match_str}")
+            st.write(f"**{name}**")
+            st.markdown(f'<div style="background-color:{color_code};width:100%;height:100px;border-radius:10px;"></div>', unsafe_allow_html=True)
+            st.caption(color_code)
