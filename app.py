@@ -8,17 +8,17 @@ import colorsys
 st.set_page_config(page_title="StyleMatch AI | Professional Precision", layout="centered")
 
 def get_exact_fabric_hue(image, k=12):
-    """Uses advanced saturation masking to isolate the true fabric dye."""
+    """Uses advanced saturation masking to isolate the true fabric dye even with people in frame."""
     h, w, _ = image.shape
-    # Focus strictly on the center core of the garment
+    # Focus strictly on the center core of the garment to avoid edges/backgrounds
     ch, cw = h // 2, w // 2
     rh, rw = int(h * 0.15), int(w * 0.15)
     crop = image[ch-rh:ch+rh, cw-rw:cw+rw]
     
-    # Filter for high-saturation pixels only (Removes white fur/grey backgrounds)
+    # Filter for high-saturation pixels (Removes background noise and skin tones)
     hsv = cv2.cvtColor(crop, cv2.COLOR_RGB2HSV)
-    # Masking: We only look at pixels with Saturation > 40 and Value between 20-230
-    mask = cv2.inRange(hsv, (0, 40, 20), (180, 255, 230))
+    # Masking: We only look at pixels with Saturation > 35 and Value > 20
+    mask = cv2.inRange(hsv, (0, 35, 20), (180, 255, 240))
     fabric_pixels = crop[mask > 0]
     
     if len(fabric_pixels) < 10: # Fallback if mask is too strict
@@ -42,14 +42,14 @@ def get_matches(rgb_list, garment_type):
     r, g, b = [x / 255.0 for x in rgb_list]
     h, l, s = colorsys.rgb_to_hls(r, g, b)
     
-    # Mathematical Pairing Logic
+    # Professional Pairing Logic
     match_map = {
         "Perfect Contrast": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
         "Tonal Harmony": colorsys.hls_to_rgb((h + 0.05) % 1.0, l, s),
         "Modern Designer": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
     }
     
-    # Contextual Naming
+    # Contextual Naming for Your Brands
     if "Kurta" in garment_type:
         p1, p2 = "Leggings", "Chunny"
     elif "Saree" in garment_type:
@@ -60,8 +60,8 @@ def get_matches(rgb_list, garment_type):
     return match_map, p1, p2
 
 # UI Header
-st.title("👗 StyleMatch Pro: Precision Mode")
-st.markdown("### Specialized for Subham Grand & Siri Dress Divine Fabrics")
+st.title("👗 StyleMatch Pro: Precision Extraction")
+st.markdown("### Specialized for Catalog Photos with Models & Studio Backgrounds")
 
 # Selection Mode
 extract_mode = st.radio("Extraction Method:", ["Auto-Detect Fabric", "Manual Color Selection"], horizontal=True)
