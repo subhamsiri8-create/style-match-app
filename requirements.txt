@@ -2,3 +2,5 @@ streamlit
 numpy
 opencv-python-headless
 scikit-learn
+streamlit-drawable-canvas
+Pillow
