@@ -4,104 +4,87 @@ import cv2
 from sklearn.cluster import KMeans
 import colorsys
 
-# Page Configuration
+# Page Setup
 st.set_page_config(page_title="StyleMatch AI | Professional", layout="centered")
 
-def get_exact_fabric_color(image, k=8):
-    """Aggressively filters background noise and shadows to find the true dye color."""
+def get_exact_color(image, k=8):
+    """Crops background and detects the exact fabric dye color."""
     h, w, _ = image.shape
+    # Focus on the core fabric area to avoid background fur
+    crop = image[int(h*0.15):int(h*0.5), int(w*0.2):int(w*0.8)]
+    pixels = cv2.resize(crop, (100, 100)).reshape((-1, 3))
     
-    # 1. Create a Tight Center Mask (ignores fur background/edges)
-    # We take the center 40% of the image
-    ch, cw = h // 2, w // 2
-    rh, rw = int(h * 0.2), int(w * 0.2)
-    focus_zone = image[ch-rh:ch+rh, cw-rw:cw+rw]
-    
-    # 2. Extract colors using high-precision clustering
-    pixels = cv2.resize(focus_zone, (100, 100)).reshape((-1, 3))
-    clt = KMeans(n_clusters=k, n_init=15)
+    clt = KMeans(n_clusters=k, n_init=10)
     clt.fit(pixels)
     
-    # 3. Precision Filtering: Find the 'True' Fabric Hue
-    # We ignore very light (white/background) and very dark (shadows) pixels
     best_rgb = clt.cluster_centers_[0]
-    max_vibrancy_score = -1
+    max_score = -1
     
     for color in clt.cluster_centers_:
         r, g, b = color / 255.0
-        h_val, l_val, s_val = colorsys.rgb_to_hls(r, g, b)
-        
-        # Scoring Logic: High saturation is prioritized. 
-        # We penalize colors that are too bright (fur) or too dark (shadows).
-        vibrancy_score = s_val * (1 - abs(l_val - 0.5))
-        
-        if vibrancy_score > max_vibrancy_score:
-            max_vibrancy_score = vibrancy_score
+        h, l, s = colorsys.rgb_to_hls(r, g, b)
+        # Score ignores 'muddy' shadows and white backgrounds
+        score = s * (1 - abs(l - 0.5)) 
+        if score > max_score:
+            max_score = score
             best_rgb = color
-            
-    return [int(c) for c in best_rgb], focus_zone
+    return [int(c) for c in best_rgb]
 
-def get_professional_matches(rgb_list):
+def get_style_recommendations(rgb_list, garment_type):
     r, g, b = [x / 255.0 for x in rgb_list]
     h, l, s = colorsys.rgb_to_hls(r, g, b)
     
-    # Fashion-forward pairing logic
-    return {
-        "Contrasting Blouse": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
-        "Tonal/Harmonious": colorsys.hls_to_rgb((h + 0.05) % 1.0, l, s),
-        "Designer Accents": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s),
-        "Soft Neutral": colorsys.hls_to_rgb(h, 0.9, 0.1) # Soft cream/beige base
+    # Matching Logic
+    match_map = {
+        "Contrasting": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
+        "Harmonious": colorsys.hls_to_rgb((h + 0.08) % 1.0, l, s),
+        "Modern Designer": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
     }
+    
+    # Naming Logic based on input
+    item_name = "Blouse" if "Saree" in garment_type else "Trouser"
+    return match_map, item_name
 
-# UI Header
-st.title("👗 StyleMatch AI Pro")
-st.markdown("### High-Precision Color Detection for Ethnic Wear")
+# Header
+st.title("👗 StyleMatch Pro")
+st.markdown("### Expert Color Matching for Ethnic & Western Wear")
 
-uploaded_file = st.file_uploader("Upload Garment Image", type=["jpg", "png", "jpeg"])
+garment_choice = st.radio("What are you matching today?", ["Saree (Ethnic)", "Shirt / T-shirt (Western)"], horizontal=True)
+uploaded_file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     img = cv2.cvtColor(cv2.imdecode(file_bytes, 1), cv2.COLOR_BGR2RGB)
     
-    with st.spinner("Analyzing fabric hue and texture..."):
-        exact_rgb, focus_area = get_exact_fabric_color(img)
+    with st.spinner("Isolating fabric hue..."):
+        exact_rgb = get_exact_color(img)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
-        matches = get_professional_matches(exact_rgb)
+        matches, target_item = get_style_recommendations(exact_rgb, garment_choice)
     
-    # Visual Layout
+    # Visual Output
     col1, col2 = st.columns([2, 1])
     with col1:
-        st.image(img, use_container_width=True, caption="Original Garment")
+        st.image(img, use_container_width=True, caption="Original Fabric")
     with col2:
-        st.write("**Detected True Color**")
-        st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:140px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
+        st.write("**Detected Fabric**")
+        st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:150px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.2);"></div>', unsafe_allow_html=True)
         st.code(f"HEX: #%02x%02x%02x" % tuple(exact_rgb))
-        st.caption("Background and shadows filtered out.")
 
     st.divider()
-    st.subheader("Curated Style Recommendations")
+    st.subheader(f"Recommended {target_item} Colors")
+    cols = st.columns(3)
     
-    cols = st.columns(4)
-    labels = list(matches.keys())
-    values = list(matches.values())
-    
-    for i in range(4):
-        m_int = [int(x*255) for x in values[i]]
+    for i, (label, m_rgb) in enumerate(matches.items()):
+        m_int = [int(x*255) for x in m_rgb]
         m_css = f"rgb({m_int[0]}, {m_int[1]}, {m_int[2]})"
         with cols[i]:
-            st.markdown(f"**{labels[i]}**")
-            st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:10px;"></div>', unsafe_allow_html=True)
+            st.markdown(f"**{label} {target_item}**")
+            st.markdown(f'<div style="background-color:{m_css};width:100%;height:120px;border-radius:12px;"></div>', unsafe_allow_html=True)
             st.caption(f"Code: {m_css}")
 
 # Professional Footer
 st.markdown("---")
-footer_html = """
-<div style="text-align: center; padding: 10px;">
-    <p style="font-size: 16px;">Developed by 
-        <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">
-            Katragadda Surendra
-        </a>
-    </p>
-</div>
-"""
-st.markdown(footer_html, unsafe_allow_html=True)
+st.markdown(
+    f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>',
+    unsafe_allow_html=True
+)
