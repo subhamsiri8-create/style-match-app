@@ -6,20 +6,20 @@ from PIL import Image
 import colorsys
 
 # Professional Page Setup
-st.set_page_config(page_title="StyleMatch AI | Precision Pointer", layout="centered")
+st.set_page_config(page_title="StyleMatch AI | Professional Precision", layout="centered")
 
 def get_matches(rgb_list, garment_type):
     r, g, b = [x / 255.0 for x in rgb_list]
     h, l, s = colorsys.rgb_to_hls(r, g, b)
     
-    # Fashion Theory Pairing
+    # Mathematical matching logic based on the HSL color wheel
     match_map = {
         "Perfect Contrast": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
         "Tonal Harmony": colorsys.hls_to_rgb((h + 0.05) % 1.0, l, s),
         "Modern Designer": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
     }
     
-    # Dynamic Naming for Your Brand Categories
+    # Precise Naming Logic for your brand categories
     if "Kurta" in garment_type:
         p1, p2 = "Leggings", "Chunny"
     elif "Saree" in garment_type:
@@ -30,21 +30,26 @@ def get_matches(rgb_list, garment_type):
     return match_map, p1, p2
 
 # UI Header
-st.title("👗 StyleMatch Pro: Precision Pointer")
-st.markdown("### Interactive Fabric Selection for Catalog Photography")
+st.title("👗 StyleMatch AI Pro")
+st.markdown("### Precision Fabric Extraction for Subham Grand & Siri Dress Divine")
 
-garment_choice = st.radio("Target Garment:", ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], horizontal=True)
+# Garment Selection
+garment_choice = st.radio(
+    "Identify target garment:", 
+    ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], 
+    horizontal=True
+)
 
 uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
-    # Process Image
+    # Load and process image
     raw_img = Image.open(uploaded_file).convert("RGB")
     img_array = np.array(raw_img)
     
-    st.info("🎯 **Click exactly on the fabric** (the navy blue or red areas) to extract the exact dye color.")
+    st.info("🎯 **Click exactly on the fabric** (avoiding skin or background) to extract the dye color.")
     
-    # Interactive Canvas
+    # Interactive Pointer Canvas
     canvas_width = 700
     canvas_height = img_array.shape[0] * (canvas_width / img_array.shape[1])
     
@@ -60,18 +65,18 @@ if uploaded_file:
         key="fabric_pointer",
     )
 
-    # Extraction Logic
+    # Color Extraction Logic
     exact_rgb = [0, 0, 0]
     if canvas_result.json_data is not None and len(canvas_result.json_data["objects"]) > 0:
         last_point = canvas_result.json_data["objects"][-1]
         x_scaled = int(last_point["left"])
         y_scaled = int(last_point["top"])
         
-        # Map back to original high-res pixels
+        # Map back to high-res original pixels
         orig_x = int(x_scaled * (img_array.shape[1] / canvas_width))
         orig_y = int(y_scaled * (img_array.shape[0] / canvas_height))
         
-        # Take a small 5x5 average around the pointer to get the 'Exact' color
+        # Sample a 5x5 area for color smoothing
         sample = img_array[max(0, orig_y-2):min(img_array.shape[0], orig_y+3), 
                            max(0, orig_x-2):min(img_array.shape[1], orig_x+3)]
         exact_rgb = np.mean(sample, axis=(0,1)).astype(int)
@@ -83,7 +88,7 @@ if uploaded_file:
     st.divider()
     col1, col2 = st.columns([1, 2])
     with col1:
-        st.write("**Pointed Fabric Color**")
+        st.write("**Extracted Fabric Color**")
         st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:120px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
         st.code(f"HEX: #%02x%02x%02x" % tuple(exact_rgb))
 
