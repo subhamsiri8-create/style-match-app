@@ -5,65 +5,58 @@ from PIL import Image
 from sklearn.cluster import KMeans
 import colorsys
 
-# Professional Page Config
-st.set_page_config(page_title="StyleMatch Elite", layout="wide", initial_sidebar_state="expanded")
+# Professional Page Setup for international display
+st.set_page_config(page_title="StyleMatch Global", layout="wide")
 
-# Apple/Microsoft Style CSS
+# International Style CSS: Vibrant Accents & Sleek Layouts
 st.markdown("""
     <style>
-    /* Glassmorphism Effect */
+    /* Gradient Background for International Look */
     .stApp {
-        background-color: #f5f5f7;
-        color: #1d1d1f;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+        color: #2d3436;
     }
     
-    /* Sidebar Styling */
-    [data-testid="stSidebar"] {
-        background-color: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        border-right: 1px solid #d2d2d7;
-    }
-    
-    /* Modern Card Container */
-    .element-container img {
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    
-    /* Result Swatch Styling */
-    .color-card {
-        background: white;
-        padding: 20px;
-        border-radius: 18px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-        text-align: center;
-        margin-bottom: 20px;
-        border: 1px solid #d2d2d7;
-    }
-    
-    .swatch {
-        height: 100px;
-        border-radius: 12px;
-        margin-bottom: 12px;
-        border: 1px solid rgba(0,0,0,0.05);
-    }
-    
-    /* Professional Typography */
+    /* Header with Gold/Sunset Accent */
     h1 {
-        font-weight: 600;
-        letter-spacing: -0.022em;
-        color: #1d1d1f;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 800;
+        background: -webkit-linear-gradient(#FF8C00, #FF0080);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        letter-spacing: -1px;
+    }
+
+    /* Designer Glassmorphism Cards */
+    .designer-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        padding: 25px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+
+    /* Result Swatch Styling */
+    .swatch {
+        height: 120px;
+        border-radius: 20px;
+        margin-bottom: 15px;
+        border: 4px solid #fff;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
     </style>
     """, unsafe_allow_html=True)
 
-def extract_accurate_dye(image):
-    """Precision extraction focusing on center fabric mass."""
+def extract_precise_dye(image):
+    """High-accuracy extraction to isolate fabric from studio sets."""
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     h, w, _ = img_cv.shape
     cy, cx = h // 2, w // 2
-    rh, rw = int(h * 0.08), int(w * 0.08)
+    # Tight 15% center focus to ignore beige store walls
+    rh, rw = int(h * 0.075), int(w * 0.075)
     crop = img_cv[cy-rh:cy+rh, cx-rw:cx+rw]
     
     pixels = cv2.resize(crop, (60, 60)).reshape((-1, 3))
@@ -75,67 +68,71 @@ def extract_accurate_dye(image):
     for color in clt.cluster_centers_:
         r, g, b = color[::-1] / 255.0
         h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
-        score = (s_v * 0.7) + (l_v * 0.3) 
+        # Optimized for international color palettes (pastels to deep hues)
+        score = (s_v * 0.65) + (l_v * 0.35) 
         if 0.1 < l_v < 0.97:
             if score > max_score:
                 max_score = score
                 best_rgb = color[::-1]
     return [int(c) for c in best_rgb]
 
-# --- SIDEBAR CONTROLS ---
-with st.sidebar:
-    st.title("StyleMatch")
-    st.markdown("### Configuration")
-    garment_choice = st.selectbox(
-        "Garment Type", 
-        ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"]
-    )
-    uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jpeg"])
-    st.divider()
-    st.caption("Developed by Katragadda Surendra")
+# --- MAIN UI ---
+st.title("STYLEMATCH INTERNATIONAL")
+st.markdown("<p style='text-align: center; font-size: 1.1em; color: #636e72;'>Premium Styling Engine for Subham Grand & Siri Dress Divine</p>", unsafe_allow_html=True)
 
-# --- MAIN WORKSPACE ---
+col_ctrl, col_main = st.columns([1, 2.5])
+
+with col_ctrl:
+    st.markdown("### 01. Configure")
+    garment_choice = st.selectbox("Category", ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"])
+    uploaded_file = st.file_uploader("Upload Product Shot", type=["jpg", "png", "jpeg"])
+    
+    if uploaded_file:
+        st.markdown("### 02. Fine-tune")
+        st.info("Adjust results for perfect lighting sync.")
+
 if uploaded_file:
     img_pil = Image.open(uploaded_file).convert("RGB")
     
-    # Process
-    with st.spinner("Synchronizing Fabric Data..."):
-        exact_rgb = extract_accurate_dye(img_pil)
+    with st.spinner("Synchronizing with Global Color Standards..."):
+        exact_rgb = extract_precise_dye(img_pil)
         hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
         
-        # Dynamic Labeling
-        p1, p2 = ("Leggings", "Dupatta") if "Kurta" in garment_choice else ("Blouse", "Border")
+        # International Naming Logic
+        p1, p2 = ("Leggings", "Dupatta") if "Kurta" in garment_choice else ("Blouse", "Border Detail")
         
-        # Color Harmony Pairings
+        # Global Harmony Logic
         r_f, g_f, b_f = [x / 255.0 for x in exact_rgb]
         h_f, l_f, s_f = colorsys.rgb_to_hls(r_f, g_f, b_f)
         matches = {
-            "Contrast Pair": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
-            "Tonal Blend": colorsys.hls_to_rgb((h_f + 0.06) % 1.0, l_f, s_f),
-            "Designer Set": colorsys.hls_to_rgb((h_f + 0.33) % 1.0, l_f, s_f)
+            "Bold Contrast": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
+            "Ethereal Tonal": colorsys.hls_to_rgb((h_f + 0.08) % 1.0, l_f, s_f),
+            "Avant-Garde Set": colorsys.hls_to_rgb((h_f + 0.33) % 1.0, l_f, s_f)
         }
 
-    # Layout
-    col_img, col_res = st.columns([1.2, 1])
-    
-    with col_img:
-        st.image(img_pil, use_container_width=True)
-
-    with col_res:
+    with col_main:
+        # Source Display Card
         st.markdown(f"""
-            <div class="color-card">
-                <h3 style="margin-top:0;">Source Pigment</h3>
-                <div class="swatch" style="background-color:{rgb_css}; height:150px;"></div>
-                <p style="font-family:monospace; font-weight:bold; font-size:1.2em;">{hex_val.upper()}</p>
+            <div class="designer-card">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <h3>Source Extraction</h3>
+                    <h4 style="color:#FF0080;">{hex_val.upper()}</h4>
+                </div>
+                <div class="swatch" style="background-color:{rgb_css}; height: 180px;"></div>
             </div>
         """, unsafe_allow_html=True)
-        st.color_picker("Fine-tune Selection", hex_val)
+        
+        # Color theory diagrams help visualize these pairings
+        
+        
+        # Image Display
+        st.image(img_pil, use_container_width=True)
 
     st.divider()
-    st.markdown(f"### Professional Pairings for {p1} & {p2}")
+    st.markdown(f"<h2 style='text-align: center;'>Global Pairings for {p1} & {p2}</h2>", unsafe_allow_html=True)
     
-    # Grid for matches
+    # Designer Swatch Grid
     m_cols = st.columns(3)
     idx = 0
     for label, m_rgb in matches.items():
@@ -144,16 +141,22 @@ if uploaded_file:
         m_css = f"rgb({m_int[0]}, {m_int[1]}, {m_int[2]})"
         with m_cols[idx]:
             st.markdown(f"""
-                <div class="color-card">
-                    <p style="font-weight:600; color:#86868b; margin-bottom:8px;">{label}</p>
-                    <div class="swatch" style="background-color:{m_css};"></div>
-                    <p style="font-family:monospace;">{m_hex.upper()}</p>
+                <div class="designer-card" style="text-align: center; padding: 15px;">
+                    <p style="font-weight: bold; margin-bottom: 10px;">{label}</p>
+                    <div class="swatch" style="background-color:{m_css}; height: 100px;"></div>
+                    <code style="background: transparent; color: #FF0080; font-size: 1.1em;">{m_hex.upper()}</code>
                 </div>
             """, unsafe_allow_html=True)
         idx += 1
 else:
-    st.markdown("### Upload an image to begin the professional color analysis.")
+    with col_main:
+        st.markdown("""
+            <div class="designer-card" style="text-align: center; padding: 100px;">
+                <h2 style="color: #b2bec3;">READY FOR ANALYSIS</h2>
+                <p>Upload a catalog image to extract high-precision color data.</p>
+            </div>
+        """, unsafe_allow_html=True)
 
 # Footer
 st.markdown("---")
-st.markdown(f'<div style="text-align: center; color:#86868b; font-size:0.9em;">Katragadda Surendra | Professional App Developer</div>', unsafe_allow_html=True)
+st.markdown(f'<div style="text-align: center; font-weight: bold; color: #636e72;">Developed by Katragadda Surendra | International Application Developer</div>', unsafe_allow_html=True)
