@@ -8,7 +8,7 @@ import colorsys
 # Professional Page Setup
 st.set_page_config(page_title="StyleMatch Elite", layout="wide")
 
-# High-Standard UI Injection
+# Elite Glassmorphism UI
 st.markdown("""
     <style>
     .stApp { background: radial-gradient(circle at top left, #ffffff, #f0f2f6); font-family: 'Inter', sans-serif; }
@@ -19,16 +19,15 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 def extract_accurate_dye(image):
-    """Open-source K-Means algorithm for fabric pigment isolation."""
+    """High-precision extraction targeting the 15% center core."""
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     h, w, _ = img_cv.shape
-    # Targeted 15% center-crop to isolate fabric from studio noise
     cy, cx = h // 2, w // 2
+    # Targeted center-crop to isolate fabric from studio backgrounds
     rh, rw = int(h * 0.075), int(w * 0.075)
     crop = img_cv[cy-rh:cy+rh, cx-rw:cx+rw]
     
     pixels = cv2.resize(crop, (60, 60)).reshape((-1, 3))
-    # Using Open Source Scikit-Learn KMeans
     clt = KMeans(n_clusters=4, n_init=5)
     clt.fit(pixels)
     
@@ -37,7 +36,7 @@ def extract_accurate_dye(image):
     for color in clt.cluster_centers_:
         r, g, b = color[::-1] / 255.0
         h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
-        # Luminance-aware scoring for pastels and deep silks
+        # Score prioritizing fabric saturation over neutral studio tones
         score = (s_v * 0.65) + (l_v * 0.35) 
         if 0.12 < l_v < 0.96:
             if score > max_score:
@@ -52,13 +51,13 @@ col_ctrl, col_main = st.columns([1, 2.8])
 with col_ctrl:
     st.markdown("<div class='glass-card'><h3>Configuration</h3>", unsafe_allow_html=True)
     garment_choice = st.selectbox("Catalog Category", ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"])
-    uploaded_file = st.file_uploader("Upload Catalog Image", type=["jpg", "png", "jpeg"])
+    uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jpeg"])
     st.markdown("</div>", unsafe_allow_html=True)
 
 if uploaded_file:
     img_pil = Image.open(uploaded_file).convert("RGB")
     
-    with st.spinner("Analyzing Professional Color Space..."):
+    with st.spinner("Analyzing Professional Harmonies..."):
         exact_rgb = extract_accurate_dye(img_pil)
         hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
@@ -66,17 +65,17 @@ if uploaded_file:
         # Professional Pairing Labels
         p1, p2 = ("Leggings", "Dupatta") if "Kurta" in garment_choice else ("Blouse", "Border Detail")
         
-        # Open Source Color Theory Logic
+        # Expert Matching Logic based on HSL color wheel
         r_f, g_f, b_f = [x / 255.0 for x in exact_rgb]
         h_f, l_f, s_f = colorsys.rgb_to_hls(r_f, g_f, b_f)
         matches = {
-            "Contrast Match": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
-            "Tonal Harmony": colorsys.hls_to_rgb((h_f + 0.08) % 1.0, l_f, s_f),
-            "Designer Set": colorsys.hls_to_rgb((h_f + 0.33) % 1.0, l_f, s_f)
+            "Professional Contrast": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
+            "Ethereal Tonal": colorsys.hls_to_rgb((h_f + 0.08) % 1.0, l_f, s_f),
+            "Designer Choice": colorsys.hls_to_rgb((h_f + 0.33) % 1.0, l_f, s_f)
         }
 
     with col_main:
-        # STEP 1: Main Color Result
+        # Main Swatch
         st.markdown(f"""
             <div class='glass-card'>
                 <div style='display: flex; justify-content: space-between; align-items: center;'>
@@ -87,8 +86,8 @@ if uploaded_file:
             </div>
         """, unsafe_allow_html=True)
 
-        # STEP 2: Matching Colors Below Swatch
-        st.markdown(f"### Expert Pairings for {p1} & {p2}")
+        # Matching Results directly below swatch
+        st.markdown(f"### Verified Pairings for {p1} & {p2}")
         m_cols = st.columns(3)
         idx = 0
         for label, m_rgb in matches.items():
