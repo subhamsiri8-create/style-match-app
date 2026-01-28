@@ -9,10 +9,10 @@ import colorsys
 st.set_page_config(page_title="StyleMatch AI Pro", layout="centered")
 
 def extract_precise_fabric(image):
-    """Targets center fabric mass to ignore studio backgrounds while capturing light colors."""
+    """Refined logic for perfect fabric isolation from studio photos."""
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     h, w, _ = img_cv.shape
-    # Tight center crop to isolate garment from studio walls/floor
+    # Tight center crop to ignore beige studio backgrounds
     cy, cx = h // 2, w // 2
     rh, rw = int(h * 0.12), int(w * 0.12)
     crop = img_cv[cy-rh:cy+rh, cx-rw:cx+rw]
@@ -27,21 +27,20 @@ def extract_precise_fabric(image):
         r, g, b = color[::-1] / 255.0
         h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
         
-        # Scoring balanced for both vibrant and light/pastel colors
+        # Scoring for both vibrant and light colors while rejecting whites/blacks
         score = (s_v * 0.6) + (l_v * 0.4) 
-        
-        # Filter out extreme white (background) or black (shadows)
-        if 0.15 < l_v < 0.96:
+        if 0.12 < l_v < 0.97:
             if score > max_score:
                 max_score = score
                 best_rgb = color[::-1]
                 
     return [int(c) for c in best_rgb]
 
-# UI Header
+# --- UI Header ---
 st.title("👗 StyleMatch AI Pro")
-st.markdown("### Technical Color Extraction for Subham Grand & Siri Dress Divine")
+st.markdown("### Professional Color Matching for Cataloging")
 
+# Category Logic for Subham Grand
 garment_choice = st.radio(
     "Select Category:", 
     ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], 
@@ -52,26 +51,26 @@ uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jp
 if uploaded_file:
     img_pil = Image.open(uploaded_file).convert("RGB")
     
-    with st.spinner("Extracting fabric codes..."):
+    with st.spinner("Calculating perfect pairings..."):
         exact_rgb = extract_precise_fabric(img_pil)
         hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
         
-        # Dynamic Item Labeling
+        # Determine Professional Labels
         if "Kurta" in garment_choice:
             p1, p2 = "Leggings", "Dupatta"
         elif "Saree" in garment_choice:
-            p1, p2 = "Blouse", "Border"
+            p1, p2 = "Blouse", "Contrast Border"
         else:
             p1, p2 = "Trouser", "Jeans"
         
-        # Color Matching Theory
+        # Advanced Color Theory Pairings
         r_f, g_f, b_f = [x / 255.0 for x in exact_rgb]
         h_f, l_f, s_f = colorsys.rgb_to_hls(r_f, g_f, b_f)
         matches = {
-            "Contrast": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
-            "Tonal": colorsys.hls_to_rgb((h_f + 0.05) % 1.0, l_f, s_f),
-            "Designer": colorsys.hls_to_rgb((h_f + 0.33) % 1.0, l_f, s_f)
+            "Complementary (Contrast)": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
+            "Analogous (Tonal)": colorsys.hls_to_rgb((h_f + 0.08) % 1.0, l_f, s_f),
+            "Triadic (Designer)": colorsys.hls_to_rgb((h_f + 0.33) % 1.0, l_f, s_f)
         }
     
     col1, col2 = st.columns([2, 1])
@@ -85,8 +84,9 @@ if uploaded_file:
         st.color_picker("Adjust HEX:", hex_val)
 
     st.divider()
-    st.subheader(f"Matching Results for {p1} & {p2}")
+    st.subheader(f"Professional Pairings for {p1} & {p2}")
     
+    # Flat column loop to prevent IndentationErrors
     m_cols = st.columns(3)
     idx = 0
     for label, m_rgb in matches.items():
@@ -97,7 +97,7 @@ if uploaded_file:
             st.markdown(f"**{label}**")
             st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:12px;"></div>', unsafe_allow_html=True)
             st.code(m_hex.upper())
-            st.caption(f"For {p1}/{p2}")
+            st.caption(f"Perfect for {p1}/{p2}")
         idx += 1
 
 # Professional Footer
