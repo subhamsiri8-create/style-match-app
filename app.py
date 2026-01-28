@@ -19,20 +19,25 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 def extract_accurate_dye(image):
-    """High-precision extraction for professional fabric analysis."""
+    """Open-source K-Means algorithm for fabric pigment isolation."""
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     h, w, _ = img_cv.shape
+    # Targeted 15% center-crop to isolate fabric from studio noise
     cy, cx = h // 2, w // 2
     rh, rw = int(h * 0.075), int(w * 0.075)
     crop = img_cv[cy-rh:cy+rh, cx-rw:cx+rw]
+    
     pixels = cv2.resize(crop, (60, 60)).reshape((-1, 3))
+    # Using Open Source Scikit-Learn KMeans
     clt = KMeans(n_clusters=4, n_init=5)
     clt.fit(pixels)
+    
     best_rgb = [128, 128, 128]
     max_score = -1
     for color in clt.cluster_centers_:
         r, g, b = color[::-1] / 255.0
         h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
+        # Luminance-aware scoring for pastels and deep silks
         score = (s_v * 0.65) + (l_v * 0.35) 
         if 0.12 < l_v < 0.96:
             if score > max_score:
@@ -53,7 +58,7 @@ with col_ctrl:
 if uploaded_file:
     img_pil = Image.open(uploaded_file).convert("RGB")
     
-    with st.spinner("Analyzing Precise Fabric Hue..."):
+    with st.spinner("Analyzing Professional Color Space..."):
         exact_rgb = extract_accurate_dye(img_pil)
         hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
@@ -61,11 +66,11 @@ if uploaded_file:
         # Professional Pairing Labels
         p1, p2 = ("Leggings", "Dupatta") if "Kurta" in garment_choice else ("Blouse", "Border Detail")
         
-        # Color Theory Logic
+        # Open Source Color Theory Logic
         r_f, g_f, b_f = [x / 255.0 for x in exact_rgb]
         h_f, l_f, s_f = colorsys.rgb_to_hls(r_f, g_f, b_f)
         matches = {
-            "Professional Contrast": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
+            "Contrast Match": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
             "Tonal Harmony": colorsys.hls_to_rgb((h_f + 0.08) % 1.0, l_f, s_f),
             "Designer Set": colorsys.hls_to_rgb((h_f + 0.33) % 1.0, l_f, s_f)
         }
@@ -75,15 +80,15 @@ if uploaded_file:
         st.markdown(f"""
             <div class='glass-card'>
                 <div style='display: flex; justify-content: space-between; align-items: center;'>
-                    <h3 style='margin:0;'>Extracted Fabric Color</h3>
+                    <h3 style='margin:0;'>Extracted Fabric Pigment</h3>
                     <code style='font-size:1.5em; color:#1e3c72;'>{hex_val.upper()}</code>
                 </div>
                 <div class='swatch' style='background-color:{rgb_css}; height: 160px; margin-top:15px;'></div>
             </div>
         """, unsafe_allow_html=True)
 
-        # STEP 2: Matching Colors Shown Directly Below
-        st.markdown(f"### Elite Pairings for {p1} & {p2}")
+        # STEP 2: Matching Colors Below Swatch
+        st.markdown(f"### Expert Pairings for {p1} & {p2}")
         m_cols = st.columns(3)
         idx = 0
         for label, m_rgb in matches.items():
@@ -100,13 +105,8 @@ if uploaded_file:
                 """, unsafe_allow_html=True)
             idx += 1
         
-        # Original Image Display at the Bottom
         st.divider()
-        st.image(img_pil, use_container_width=True, caption="Source Catalog Photo")
-
-else:
-    with col_main:
-        st.markdown("<div class='glass-card' style='text-align: center; padding: 80px;'><h3 style='color: #8395a7;'>System Ready</h3><p>Upload a photo to see the color results and matching pairs.</p></div>", unsafe_allow_html=True)
+        st.image(img_pil, use_container_width=True, caption="Source Photo")
 
 # --- PROFESSIONAL CLICKABLE FOOTER ---
 st.markdown("---")
