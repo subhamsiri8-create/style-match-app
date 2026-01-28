@@ -5,7 +5,7 @@ from PIL import Image
 from sklearn.cluster import KMeans
 import colorsys
 
-# Professional Page Setup
+# Professional Page Configuration
 st.set_page_config(page_title="StyleMatch AI Pro", layout="centered")
 
 def extract_accurate_dye(image):
@@ -29,7 +29,7 @@ def extract_accurate_dye(image):
         r, g, b = color[::-1] / 255.0
         h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
         
-        # Scoring balanced to capture light pastels and deep silks
+        # Scoring balanced for both vibrant and light/pastel fabrics
         score = (s_v * 0.65) + (l_v * 0.35) 
         
         # Filter: Ignore background whites/beiges (>0.97) and deep shadows (<0.1)
@@ -40,33 +40,33 @@ def extract_accurate_dye(image):
                 
     return [int(c) for c in best_rgb]
 
-# --- UI Layout ---
+# --- UI HEADER ---
 st.title("👗 StyleMatch AI Pro")
-st.markdown("### 🎯 Accuracy-First Color Extraction for Your Catalog")
+st.markdown("### Professional Cataloging for Subham Grand & Siri Dress Divine")
 
-# Logic Selection for Your Brands
+# Garment Logic Selection
 garment_choice = st.radio(
-    "Select Category:", 
-    ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], 
+    "Select Garment Category:", 
+    ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt / T-shirt (Western)"], 
     horizontal=True
 )
-uploaded_file = st.file_uploader("Upload Catalog Image", type=["jpg", "png", "jpeg"])
+uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
     img_pil = Image.open(uploaded_file).convert("RGB")
     
-    with st.spinner("Extracting verified fabric pigment..."):
+    with st.spinner("Analyzing professional color pairings..."):
         exact_rgb = extract_accurate_dye(img_pil)
         hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
         
-        # Labels customized for Subham Grand products
+        # Determine labels based on garment selection
         if "Kurta" in garment_choice:
-            p1, p2 = "Leggings", "Dupatta"
+            p1, p2 = "Matching Legging", "Matching Dupatta"
         elif "Saree" in garment_choice:
-            p1, p2 = "Blouse", "Contrast Border"
+            p1, p2 = "Matching Blouse", "Contrast Border"
         else:
-            p1, p2 = "Trouser", "Jeans"
+            p1, p2 = "Matching Trouser", "Jeans / Chinos"
         
         # Color Theory Harmonization
         r_f, g_f, b_f = [x / 255.0 for x in exact_rgb]
@@ -85,12 +85,12 @@ if uploaded_file:
         st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:140px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
         st.code(hex_val.upper())
         st.divider()
-        st.color_picker("Fine-tune if needed:", hex_val)
+        st.color_picker("Fine-tune color:", hex_val)
 
     st.divider()
-    st.subheader(f"Matching Results for {p1} & {p2}")
+    st.subheader(f"Expert Pairings for {p1} & {p2}")
     
-    # Flat loop to ensure no IndentationErrors
+    # Using columns with a flat loop to prevent IndentationErrors
     m_cols = st.columns(3)
     idx = 0
     for label, m_rgb in matches.items():
@@ -101,7 +101,7 @@ if uploaded_file:
             st.markdown(f"**{label}**")
             st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:12px;"></div>', unsafe_allow_html=True)
             st.code(m_hex.upper())
-            st.caption(f"Best for {p1}/{p2}")
+            st.caption(f"Suggested for {p1}/{p2}")
         idx += 1
 
 # Professional Footer
