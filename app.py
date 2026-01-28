@@ -5,11 +5,11 @@ from PIL import Image
 from sklearn.cluster import KMeans
 import colorsys
 
-# Professional Page Setup
+# Professional Page Configuration
 st.set_page_config(page_title="StyleMatch Pro", layout="centered")
 
 def get_pro_color_name(rgb):
-    """Stable color naming logic to prevent library crashes."""
+    """Stable color naming logic using native math to prevent library crashes."""
     colors = {
         "Midnight Navy": (15, 25, 55), "Royal Blue": (65, 105, 225), 
         "Deep Maroon": (128, 0, 0), "Ruby Red": (178, 34, 34), 
@@ -29,10 +29,10 @@ def get_pro_color_name(rgb):
     return closest_name
 
 def extract_fabric_dye(image):
-    """Targets center fabric to ignore beige backgrounds."""
+    """Targets center fabric to ignore neutral backgrounds."""
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     h, w, _ = img_cv.shape
-    # Tight center crop to isolate garment from studio walls
+    # Tight center crop to isolate garment from studio background
     cy, cx = h // 2, w // 2
     rh, rw = int(h * 0.12), int(w * 0.12)
     crop = img_cv[cy-rh:cy+rh, cx-rw:cx+rw]
@@ -53,11 +53,11 @@ def extract_fabric_dye(image):
             best_rgb = color[::-1]
     return [int(c) for c in best_rgb]
 
-# UI HEADER
+# --- UI HEADER ---
 st.title("👗 StyleMatch AI Pro")
-st.markdown("### Professional Cataloging: Subham Grand & Siri Dress Divine")
+st.markdown("### Professional Cataloging for Subham Grand & Siri Dress Divine")
 
-# Garment Logic Selection
+# Logic Selection
 garment_choice = st.radio("Match target:", ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], horizontal=True)
 uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jpeg"])
 
@@ -70,16 +70,16 @@ if uploaded_file:
         hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
         
-        # Color Theory Logic
+        # Color Theory Pairing
         r, g, b_val = [x / 255.0 for x in exact_rgb]
         h, l, s = colorsys.rgb_to_hls(r, g, b_val)
         matches = {
             "Contrast": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
-            "Tonal": colorsys.hls_to_rgb((h + 0.06) % 1.0, l, s),
-            "Designer": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
+            "Tonal Harmony": colorsys.hls_to_rgb((h + 0.06) % 1.0, l, s),
+            "Designer Choice": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
         }
         
-        # Custom Naming for Subham Grand Categories
+        # Specific Pairing Labels
         p1, p2 = ("Leggings", "Chunny") if "Kurta" in garment_choice else ("Blouse", "Border")
     
     col1, col2 = st.columns([2, 1])
@@ -90,66 +90,25 @@ if uploaded_file:
         st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:140px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
         st.code(f"HEX: {hex_val}")
         st.divider()
-        picked_hex = st.color_picker("Fine-tune color:", hex_val)
+        st.color_picker("Fine-tune color:", hex_val)
 
     st.divider()
     st.subheader(f"Expert Pairings for {p1} & {p2}")
     
-    # Flat column loop to prevent IndentationError
-    cols = st.columns(3)
+    # Using columns with a flat loop to prevent IndentationErrors
+    m_cols = st.columns(3)
     idx = 0
     for label, m_rgb in matches.items():
         m_int = [int(x*255) for x in m_rgb]
         m_name = get_pro_color_name(m_int)
         m_css = f"rgb({m_int[0]}, {m_int[1]}, {m_int[2]})"
-        with cols[idx]:
+        with m_cols[idx]:
             st.markdown(f"**{label}**")
             st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:12px;"></div>', unsafe_allow_html=True)
             st.write(f"**{m_name}**")
-            st.caption(f"Perfect for {p1}/{p2}")
+            st.caption(f"Suggested for {p1}/{p2}")
         idx += 1
 
 # Professional Footer
-st.markdown("---")
-st.markdown(f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>', unsafe_allow_html=True)
-            st.markdown(f"**{label}**")
-            st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:10px;"></div>', unsafe_allow_html=True)
-            st.write(f"**{m_name}**")
-            st.caption(f"Perfect for {name_1}/{name_2}")
-
-# Professional Footer with Clickable Link
-st.markdown("---")
-st.markdown(f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>', unsafe_allow_html=True)
-        with cols[i]:
-            st.markdown(f"**{label}**")
-            st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:10px;"></div>', unsafe_allow_html=True)
-            st.write(f"**{m_name}**")
-            st.caption(f"Perfect for {name_1}/{name_2}")
-
-# Professional Footer
-st.markdown("---")
-st.markdown(f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>', unsafe_allow_html=True)
-            st.write(f"**{m_name}**")
-            st.caption(f"Suggested {name_1}/{name_2}")
-
-# Professional Footer
-st.markdown("---")
-st.markdown(f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>', unsafe_allow_html=True)
-        m_css = f"rgb({m_int[0]}, {m_int[1]}, {m_int[2]})"
-        with cols[i]:
-            st.markdown(f"**{label}**")
-            st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:10px;"></div>', unsafe_allow_html=True)
-            st.write(f"**{m_name}**")
-            st.caption(f"Perfect for {name_1}/{name_2}")
-
-# Professional Footer
-st.markdown("---")
-st.markdown(f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>', unsafe_allow_html=True)
-            st.markdown(f"**{label}**")
-            st.markdown(f'<div style="background-color:{m_css};width:100%;height:80px;border-radius:10px;"></div>', unsafe_allow_html=True)
-            st.write(f"**{m_name}**")
-            st.caption(f"For {name_1} or {name_2}")
-
-# Footer
 st.markdown("---")
 st.markdown(f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>', unsafe_allow_html=True)
