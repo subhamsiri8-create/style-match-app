@@ -9,14 +9,16 @@ import colorsys
 st.set_page_config(page_title="StyleMatch AI Pro", layout="centered")
 
 def extract_precise_fabric(image):
-    """Refined logic for perfect fabric isolation from studio photos."""
+    """Refined logic for perfect fabric isolation while ignoring backgrounds."""
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     h, w, _ = img_cv.shape
-    # Tight center crop to ignore beige studio backgrounds
+    
+    # Tight center crop focusing on the 12% core to ignore beige studio walls
     cy, cx = h // 2, w // 2
     rh, rw = int(h * 0.12), int(w * 0.12)
     crop = img_cv[cy-rh:cy+rh, cx-rw:cx+rw]
     
+    # K-Means clustering to find the dominant color palette
     pixels = cv2.resize(crop, (80, 80)).reshape((-1, 3))
     clt = KMeans(n_clusters=5, n_init=5)
     clt.fit(pixels)
@@ -27,8 +29,11 @@ def extract_precise_fabric(image):
         r, g, b = color[::-1] / 255.0
         h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
         
-        # Scoring for both vibrant and light colors while rejecting whites/blacks
+        # Scoring balanced for both vibrant and light/pastel fabrics
+        # We prioritize saturation while maintaining enough lightness to capture pastels
         score = (s_v * 0.6) + (l_v * 0.4) 
+        
+        # Filters out pure white (background) or total black (shadows)
         if 0.12 < l_v < 0.97:
             if score > max_score:
                 max_score = score
@@ -38,9 +43,9 @@ def extract_precise_fabric(image):
 
 # --- UI Header ---
 st.title("👗 StyleMatch AI Pro")
-st.markdown("### Professional Color Matching for Cataloging")
+st.markdown("### Precision Color Extraction for Professional Cataloging")
 
-# Category Logic for Subham Grand
+# Garment Logic Selection
 garment_choice = st.radio(
     "Select Category:", 
     ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], 
@@ -51,12 +56,12 @@ uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jp
 if uploaded_file:
     img_pil = Image.open(uploaded_file).convert("RGB")
     
-    with st.spinner("Calculating perfect pairings..."):
+    with st.spinner("Analyzing exact fabric color..."):
         exact_rgb = extract_precise_fabric(img_pil)
         hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
         
-        # Determine Professional Labels
+        # Determine Professional Labels for Subham Grand
         if "Kurta" in garment_choice:
             p1, p2 = "Leggings", "Dupatta"
         elif "Saree" in garment_choice:
@@ -81,7 +86,7 @@ if uploaded_file:
         st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:140px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
         st.code(hex_val.upper())
         st.divider()
-        st.color_picker("Adjust HEX:", hex_val)
+        st.color_picker("Fine-tune color:", hex_val)
 
     st.divider()
     st.subheader(f"Professional Pairings for {p1} & {p2}")
