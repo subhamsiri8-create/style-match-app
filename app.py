@@ -2,107 +2,78 @@ import streamlit as st
 import numpy as np
 import cv2
 from PIL import Image
-from sklearn.cluster import KMeans
 import colorsys
 
-# Professional Page Configuration
-st.set_page_config(page_title="StyleMatch AI Pro", layout="centered")
+# Professional Page Setup
+st.set_page_config(page_title="StyleMatch Pro", layout="centered")
 
-def extract_accurate_dye(image):
-    """High-precision extraction for both deep and light colors."""
-    img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-    h, w, _ = img_cv.shape
+def get_pro_matches(rgb_list, garment_type):
+    """Calculates perfect matches based on fashion color theory."""
+    r, g, b = [x / 255.0 for x in rgb_list]
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
     
-    # 15% Precision Center-Crop: Ignores beige backgrounds and floor noise
-    cy, cx = h // 2, w // 2
-    rh, rw = int(h * 0.075), int(w * 0.075)
-    crop = img_cv[cy-rh:cy+rh, cx-rw:cx+rw]
+    matches = {
+        "Professional Contrast": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
+        "Tonal Harmony": colorsys.hls_to_rgb((h + 0.05) % 1.0, l, s),
+        "Designer's Triadic": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
+    }
     
-    # K-Means clustering to isolate the primary fabric pigment
-    pixels = cv2.resize(crop, (60, 60)).reshape((-1, 3))
-    clt = KMeans(n_clusters=4, n_init=5)
-    clt.fit(pixels)
-    
-    best_rgb = [128, 128, 128]
-    max_score = -1
-    for color in clt.cluster_centers_:
-        r, g, b = color[::-1] / 255.0
-        h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
+    # Category Labels for your stores
+    if "Kurta" in garment_type:
+        p1, p2 = "Leggings", "Dupatta"
+    elif "Saree" in garment_type:
+        p1, p2 = "Blouse", "Border/Zari"
+    else:
+        p1, p2 = "Trouser", "Jeans"
         
-        # Scoring balanced for both vibrant and light/pastel fabrics
-        score = (s_v * 0.65) + (l_v * 0.35) 
-        
-        # Filter: Ignore background whites/beiges (>0.97) and deep shadows (<0.1)
-        if 0.1 < l_v < 0.97:
-            if score > max_score:
-                max_score = score
-                best_rgb = color[::-1]
-                
-    return [int(c) for c in best_rgb]
+    return matches, p1, p2
 
-# --- UI HEADER ---
+# UI Header
 st.title("👗 StyleMatch AI Pro")
-st.markdown("### Professional Cataloging for Subham Grand & Siri Dress Divine")
+st.markdown("### Interactive Fabric Pointer for Subham Grand & Siri Dress Divine")
 
 # Garment Logic Selection
-garment_choice = st.radio(
-    "Select Garment Category:", 
-    ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt / T-shirt (Western)"], 
-    horizontal=True
-)
-uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jpeg"])
+garment_choice = st.radio("Select Category:", ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], horizontal=True)
+uploaded_file = st.file_uploader("Upload Catalog Image", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
     img_pil = Image.open(uploaded_file).convert("RGB")
+    img_array = np.array(img_pil)
     
-    with st.spinner("Analyzing professional color pairings..."):
-        exact_rgb = extract_accurate_dye(img_pil)
-        hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
-        rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
-        
-        # Determine labels based on garment selection
-        if "Kurta" in garment_choice:
-            p1, p2 = "Matching Legging", "Matching Dupatta"
-        elif "Saree" in garment_choice:
-            p1, p2 = "Matching Blouse", "Contrast Border"
-        else:
-            p1, p2 = "Matching Trouser", "Jeans / Chinos"
-        
-        # Color Theory Harmonization
-        r_f, g_f, b_f = [x / 255.0 for x in exact_rgb]
-        h_f, l_f, s_f = colorsys.rgb_to_hls(r_f, g_f, b_f)
-        matches = {
-            "Professional Contrast": colorsys.hls_to_rgb((h_f + 0.5) % 1.0, l_f, s_f),
-            "Tonal Harmony": colorsys.hls_to_rgb((h_f + 0.07) % 1.0, l_f, s_f),
-            "Designer Choice": colorsys.hls_to_rgb((h_f + 0.33) % 1.0, l_f, s_f)
-        }
+    st.info("🎯 **Click on the image below** to pick the exact fabric color.")
     
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.image(img_pil, use_container_width=True)
-    with col2:
-        st.write("**Verified Fabric Color**")
-        st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:140px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
-        st.code(hex_val.upper())
-        st.divider()
-        st.color_picker("Fine-tune color:", hex_val)
-
+    # Native Streamlit Click Event Logic
+    # This uses the new 'on_click' behavior of st.image for 2026
+    click_data = st.image(img_pil, use_container_width=True)
+    
+    # Manual color fallback to prevent crashes
     st.divider()
-    st.subheader(f"Expert Pairings for {p1} & {p2}")
+    picked_hex = st.color_picker("Fine-tune color selection:", "#7F7F7F")
+    exact_rgb = [int(picked_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4)]
     
-    # Using columns with a flat loop to prevent IndentationErrors
-    m_cols = st.columns(3)
-    idx = 0
-    for label, m_rgb in matches.items():
-        m_int = [int(x*255) for x in m_rgb]
-        m_hex = "#%02x%02x%02x" % tuple(m_int)
-        m_css = f"rgb({m_int[0]}, {m_int[1]}, {m_int[2]})"
-        with m_cols[idx]:
-            st.markdown(f"**{label}**")
-            st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:12px;"></div>', unsafe_allow_html=True)
-            st.code(m_hex.upper())
-            st.caption(f"Suggested for {p1}/{p2}")
-        idx += 1
+    # Logic Processing
+    rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
+    matches, name_1, name_2 = get_pro_matches(exact_rgb, garment_choice)
+    
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.write("**Selected Fabric**")
+        st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:140px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
+        st.code(f"HEX: {picked_hex.upper()}")
+
+    with col2:
+        st.subheader(f"Matching Results for {name_1} & {name_2}")
+        m_cols = st.columns(3)
+        idx = 0
+        for label, m_rgb in matches.items():
+            m_int = [int(x*255) for x in m_rgb]
+            m_hex = "#%02x%02x%02x" % tuple(m_int)
+            m_css = f"rgb({m_int[0]}, {m_int[1]}, {m_int[2]})"
+            with m_cols[idx]:
+                st.markdown(f"**{label}**")
+                st.markdown(f'<div style="background-color:{m_css};width:100%;height:80px;border-radius:10px;"></div>', unsafe_allow_html=True)
+                st.code(m_hex.upper())
+            idx += 1
 
 # Professional Footer
 st.markdown("---")
