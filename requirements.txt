@@ -1,6 +1,4 @@
-streamlit==1.31.0
+streamlit
 numpy
 opencv-python-headless
-scikit-learn
-streamlit-drawable-canvas==0.9.3
 Pillow
