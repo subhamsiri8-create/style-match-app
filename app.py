@@ -6,12 +6,12 @@ from sklearn.cluster import KMeans
 import colorsys
 
 # Professional Page Setup
-st.set_page_config(page_title="StyleMatch AI | Professional", layout="centered")
+st.set_page_config(page_title="StyleMatch Pro", layout="centered")
 
 def get_pro_color_name(rgb):
-    """Stable, hard-coded color naming to prevent library crashes."""
+    """Stable color naming logic to prevent library crashes."""
     colors = {
-        "Midnight Navy": (0, 0, 128), "Royal Blue": (65, 105, 225), 
+        "Midnight Navy": (15, 25, 55), "Royal Blue": (65, 105, 225), 
         "Deep Maroon": (128, 0, 0), "Ruby Red": (178, 34, 34), 
         "Emerald Green": (0, 155, 119), "Olive Green": (128, 128, 0),
         "Golden Mustard": (218, 165, 32), "Teal": (0, 128, 128), 
@@ -29,54 +29,36 @@ def get_pro_color_name(rgb):
     return closest_name
 
 def extract_fabric_dye(image):
-    """Focuses on the garment center to ignore background studio noise."""
+    """Targets center fabric to ignore beige backgrounds."""
     img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     h, w, _ = img_cv.shape
-    # Targeted center-crop to avoid beige studio walls
+    # Tight center crop to isolate garment from studio walls
     cy, cx = h // 2, w // 2
-    rh, rw = int(h * 0.15), int(w * 0.15)
+    rh, rw = int(h * 0.12), int(w * 0.12)
     crop = img_cv[cy-rh:cy+rh, cx-rw:cx+rw]
     
-    pixels = cv2.resize(crop, (100, 100)).reshape((-1, 3))
-    clt = KMeans(n_clusters=5, n_init=10)
+    pixels = cv2.resize(crop, (80, 80)).reshape((-1, 3))
+    clt = KMeans(n_clusters=4, n_init=5)
     clt.fit(pixels)
     
     best_rgb = [128, 128, 128]
-    max_score = -1
+    max_s = -1
     for color in clt.cluster_centers_:
         r, g, b = color[::-1] / 255.0
         h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
-        # Prioritize saturated fabric colors over background shadows
+        # Prioritize true saturation over shadows/highlights
         score = s_v * (1 - abs(l_v - 0.5))
-        if score > max_score:
-            max_score = score
+        if score > max_s:
+            max_s = score
             best_rgb = color[::-1]
     return [int(c) for c in best_rgb]
 
-def get_matches(rgb_list, garment_type):
-    r, g, b = [x / 255.0 for x in rgb_list]
-    h, l, s = colorsys.rgb_to_hls(r, g, b)
-    
-    match_map = {
-        "Perfect Contrast": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
-        "Tonal Harmony": colorsys.hls_to_rgb((h + 0.05) % 1.0, l, s),
-        "Modern Designer": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
-    }
-    
-    if "Kurta" in garment_type:
-        p1, p2 = "Leggings", "Chunny"
-    elif "Saree" in garment_type:
-        p1, p2 = "Blouse", "Accessories"
-    else:
-        p1, p2 = "Trouser", "Accessories"
-        
-    return match_map, p1, p2
-
-# UI Layout
+# UI HEADER
 st.title("👗 StyleMatch AI Pro")
-st.markdown("### Professional Cataloging for Subham Grand & Siri Dress Divine")
+st.markdown("### Professional Cataloging: Subham Grand & Siri Dress Divine")
 
-garment_choice = st.radio("What are you matching today?", ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], horizontal=True)
+# Garment Logic Selection
+garment_choice = st.radio("Match target:", ["Kurta (Ethnic)", "Saree (Ethnic)", "Shirt (Western)"], horizontal=True)
 uploaded_file = st.file_uploader("Upload Product Photo", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
@@ -87,26 +69,49 @@ if uploaded_file:
         color_name = get_pro_color_name(exact_rgb)
         hex_val = "#%02x%02x%02x" % tuple(exact_rgb)
         rgb_css = f"rgb({exact_rgb[0]}, {exact_rgb[1]}, {exact_rgb[2]})"
-        matches, name_1, name_2 = get_matches(exact_rgb, garment_choice)
+        
+        # Color Theory Logic
+        r, g, b_val = [x / 255.0 for x in exact_rgb]
+        h, l, s = colorsys.rgb_to_hls(r, g, b_val)
+        matches = {
+            "Contrast": colorsys.hls_to_rgb((h + 0.5) % 1.0, l, s),
+            "Tonal": colorsys.hls_to_rgb((h + 0.06) % 1.0, l, s),
+            "Designer": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
+        }
+        
+        # Custom Naming for Subham Grand Categories
+        p1, p2 = ("Leggings", "Chunny") if "Kurta" in garment_choice else ("Blouse", "Border")
     
     col1, col2 = st.columns([2, 1])
     with col1:
-        st.image(img_pil, use_container_width=True, caption="Source Catalog Photo")
+        st.image(img_pil, use_container_width=True, caption="Verified Catalog Image")
     with col2:
         st.write(f"**Detected: {color_name}**")
-        st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:150px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background-color:{rgb_css};width:100%;height:140px;border-radius:15px;border:5px solid white;box-shadow: 0 4px 15px rgba(0,0,0,0.3);"></div>', unsafe_allow_html=True)
         st.code(f"HEX: {hex_val}")
-        st.caption("Manual Adjustment:")
-        st.color_picker("Fine-tune color:", hex_val)
+        st.divider()
+        picked_hex = st.color_picker("Fine-tune color:", hex_val)
 
     st.divider()
-    st.subheader(f"Expert Pairings for {name_1} & {name_2}")
+    st.subheader(f"Expert Pairings for {p1} & {p2}")
+    
+    # Flat column loop to prevent IndentationError
     cols = st.columns(3)
-    for i, (label, m_rgb) in enumerate(matches.items()):
+    idx = 0
+    for label, m_rgb in matches.items():
         m_int = [int(x*255) for x in m_rgb]
         m_name = get_pro_color_name(m_int)
         m_css = f"rgb({m_int[0]}, {m_int[1]}, {m_int[2]})"
-        with cols[i]:
+        with cols[idx]:
+            st.markdown(f"**{label}**")
+            st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:12px;"></div>', unsafe_allow_html=True)
+            st.write(f"**{m_name}**")
+            st.caption(f"Perfect for {p1}/{p2}")
+        idx += 1
+
+# Professional Footer
+st.markdown("---")
+st.markdown(f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>', unsafe_allow_html=True)
             st.markdown(f"**{label}**")
             st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:10px;"></div>', unsafe_allow_html=True)
             st.write(f"**{m_name}**")
