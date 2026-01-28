@@ -46,7 +46,7 @@ def extract_fabric_dye(image):
     for color in clt.cluster_centers_:
         r, g, b = color[::-1] / 255.0
         h_v, l_v, s_v = colorsys.rgb_to_hls(r, g, b)
-        # Prioritize saturated fabric colors over background/shadows
+        # Prioritize saturated fabric colors over background shadows
         score = s_v * (1 - abs(l_v - 0.5))
         if score > max_score:
             max_score = score
@@ -63,7 +63,6 @@ def get_matches(rgb_list, garment_type):
         "Modern Designer": colorsys.hls_to_rgb((h + 0.33) % 1.0, l, s)
     }
     
-    # Customized Naming for Your Specific Brand Needs
     if "Kurta" in garment_type:
         p1, p2 = "Leggings", "Chunny"
     elif "Saree" in garment_type:
@@ -107,6 +106,15 @@ if uploaded_file:
         m_int = [int(x*255) for x in m_rgb]
         m_name = get_pro_color_name(m_int)
         m_css = f"rgb({m_int[0]}, {m_int[1]}, {m_int[2]})"
+        with cols[i]:
+            st.markdown(f"**{label}**")
+            st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:10px;"></div>', unsafe_allow_html=True)
+            st.write(f"**{m_name}**")
+            st.caption(f"Perfect for {name_1}/{name_2}")
+
+# Professional Footer with Clickable Link
+st.markdown("---")
+st.markdown(f'<div style="text-align: center;"><p>Developed by <a href="https://gravatar.com/katragaddasurendra" target="_blank" style="text-decoration: none; color: #FF4B4B; font-weight: bold;">Katragadda Surendra</a></p></div>', unsafe_allow_html=True)
         with cols[i]:
             st.markdown(f"**{label}**")
             st.markdown(f'<div style="background-color:{m_css};width:100%;height:100px;border-radius:10px;"></div>', unsafe_allow_html=True)
